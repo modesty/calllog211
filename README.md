@@ -25,7 +25,7 @@ Python frameworks and libraries (more on this later), it does not has a full fle
 with NDB, although it can be added later on._
 
 
-## What this RESTful service is built with
+## What it is built with
 
 There are many options to built RESTful web service in Python on Google App Engine, I've evaluated 
 [Django](https://www.djangoproject.com/), [Django REST framework](http://www.django-rest-framework.org/),
@@ -94,7 +94,7 @@ Google has excellent documentation on [how to run on local development server](h
 and also [how to deploy and manage your app on App Engine](https://developers.google.com/appengine/docs/python/tools/uploadinganapp).
 You can also reference [Python tutorial](https://developers.google.com/appengine/docs/python/gettingstartedpython27/introduction) for more details.
 
-### How to test the API
+### Test the API
 
 Here are some sample `curl` command to test the API in terminal. When testing after deployment, simply replace
 `http://127.0.0.1:8080` with `http://<your_google_project_id>.appspot.com`:
