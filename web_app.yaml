@@ -1,0 +1,225 @@
+handlers:
+- url: /(.*\.(appcache|manifest))
+  mime_type: text/cache-manifest
+  static_files: app/\1
+  upload: app/(.*\.(appcache|manifest))
+  expiration: "0m"
+  secure: always
+
+- url: /(.*\.atom)
+  mime_type: application/atom+xml
+  static_files: app/\1
+  upload: app/(.*\.atom)
+  expiration: "1h"
+  secure: always
+
+- url: /(.*\.crx)
+  mime_type: application/x-chrome-extension
+  static_files: app/\1
+  upload: app/(.*\.crx)
+  secure: always
+
+- url: /(.*\.css)
+  mime_type: text/css
+  static_files: app/\1
+  upload: app/(.*\.css)
+  secure: always
+
+- url: /(.*\.eot)
+  mime_type: application/vnd.ms-fontobject
+  static_files: app/\1
+  upload: app/(.*\.eot)
+  secure: always
+
+- url: /(.*\.htc)
+  mime_type: text/x-component
+  static_files: app/\1
+  upload: app/(.*\.htc)
+  secure: always
+
+- url: /(.*\.html)
+  mime_type: text/html
+  static_files: app/\1
+  upload: app/(.*\.html)
+  expiration: "1h"
+  secure: always
+
+- url: /(.*\.ico)
+  mime_type: image/x-icon
+  static_files: app/\1
+  upload: app/(.*\.ico)
+  expiration: "7d"
+  secure: always
+
+- url: /(.*\.js)
+  mime_type: text/javascript
+  static_files: app/\1
+  upload: app/(.*\.js)
+  secure: always
+
+- url: /(.*\.json)
+  mime_type: application/json
+  static_files: app/\1
+  upload: app/(.*\.json)
+  expiration: "1h"
+  secure: always
+
+- url: /(.*\.m4v)
+  mime_type: video/m4v
+  static_files: app/\1
+  upload: app/(.*\.m4v)
+  secure: always
+
+- url: /(.*\.mp4)
+  mime_type: video/mp4
+  static_files: app/\1
+  upload: app/(.*\.mp4)
+  secure: always
+
+- url: /(.*\.(ogg|oga))
+  mime_type: audio/ogg
+  static_files: app/\1
+  upload: app/(.*\.(ogg|oga))
+  secure: always
+
+- url: /(.*\.ogv)
+  mime_type: video/ogg
+  static_files: app/\1
+  upload: app/(.*\.ogv)
+  secure: always
+
+- url: /(.*\.otf)
+  mime_type: font/opentype
+  static_files: app/\1
+  upload: app/(.*\.otf)
+  secure: always
+
+- url: /(.*\.rss)
+  mime_type: application/rss+xml
+  static_files: app/\1
+  upload: app/(.*\.rss)
+  expiration: "1h"
+  secure: always
+
+- url: /(.*\.safariextz)
+  mime_type: application/octet-stream
+  static_files: app/\1
+  upload: app/(.*\.safariextz)
+  secure: always
+
+- url: /(.*\.(svg|svgz))
+  mime_type: images/svg+xml
+  static_files: app/\1
+  upload: app/(.*\.(svg|svgz))
+  secure: always
+
+- url: /(.*\.swf)
+  mime_type: application/x-shockwave-flash
+  static_files: app/\1
+  upload: app/(.*\.swf)
+  secure: always
+
+- url: /(.*\.ttf)
+  mime_type: font/truetype
+  static_files: app/\1
+  upload: app/(.*\.ttf)
+  secure: always
+
+- url: /(.*\.txt)
+  mime_type: text/plain
+  static_files: app/\1
+  upload: app/(.*\.txt)
+  secure: always
+
+- url: /(.*\.unity3d)
+  mime_type: application/vnd.unity
+  static_files: app/\1
+  upload: app/(.*\.unity3d)
+  secure: always
+
+- url: /(.*\.webm)
+  mime_type: video/webm
+  static_files: app/\1
+  upload: app/(.*\.webm)
+  secure: always
+
+- url: /(.*\.webp)
+  mime_type: image/webp
+  static_files: app/\1
+  upload: app/(.*\.webp)
+  secure: always
+
+- url: /(.*\.woff)
+  mime_type: application/x-font-woff
+  static_files: app/\1
+  upload: app/(.*\.woff)
+  secure: always
+
+- url: /(.*\.xml)
+  mime_type: application/xml
+  static_files: app/\1
+  upload: app/(.*\.xml)
+  expiration: "1h"
+  secure: always
+
+- url: /(.*\.xpi)
+  mime_type: application/x-xpinstall
+  static_files: app/\1
+  upload: app/(.*\.xpi)
+  secure: always
+
+- url: /(.*\.pdf)
+  mime_type: application/pdf
+  static_files: app/\1
+  upload: app/(.*\.pdf)
+  secure: always
+
+# image files
+- url: /(.*\.(bmp|gif|ico|jpeg|jpg|png))
+  static_files: app/\1
+  upload: app/(.*\.(bmp|gif|ico|jpeg|jpg|png))
+  secure: always
+
+# audio files
+- url: /(.*\.(mid|midi|mp3|wav))
+  static_files: app/\1
+  upload: app/(.*\.(mid|midi|mp3|wav))
+  secure: always
+
+# windows files
+- url: /(.*\.(doc|exe|ppt|rtf|xls))
+  static_files: app/\1
+  upload: app/(.*\.(doc|exe|ppt|rtf|xls))
+  secure: always
+
+# compressed files
+- url: /(.*\.(bz2|gz|rar|tar|tgz|zip))
+  static_files: app/\1
+  upload: app/(.*\.(bz2|gz|rar|tar|tgz|zip))
+  secure: always
+
+# index files
+- url: /(.+)/
+  static_files: app/\1/index.html
+  upload: app/(.+)/index.html
+  expiration: "15m"
+  secure: always
+
+- url: /(.+)
+  static_files: app/\1/index.html
+  upload: app/(.+)/index.html
+  expiration: "15m"
+  secure: always
+
+# site root
+- url: /?
+  static_files: app/index.html
+  upload: app/index.html
+  expiration: "15m"
+  secure: always
+
+#all other urls: return the enkisoftware 404 not found
+- url: /.*
+  static_files: app/404.html
+  upload: app/404.html
+  secure: always

@@ -1,0 +1,4 @@
+handlers:
+# Flask Restful handler
+- url: /api/.*
+  script: api.app.app
