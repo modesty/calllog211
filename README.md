@@ -60,11 +60,15 @@ also include the following building blocks in the `api/common` directory:
 * session.py: utilize Google App Engine's memcache to validate a session
 * util.py: lots of utilities methods mainly around data types and ndb model processes
 * validators: validator types that works with [ReqParse](http://flask-restful.readthedocs.org/en/latest/api.html#module-reqparse)
+* [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS): I was trying to use Flask-RESTful
+ built-in support for [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS), but when I tested
+ it with HTTP OPTIONS, it returns HTTP 200 without access control headers. So I commented out decorators code,
+ and implemented OPTIONS in CallLogAPI.py. I should revisit this issue later...
 
 And lots more! Clone it and start to hack!
 
 
-### Google App Engine Configurations for Flask-RESTful
+### Configurations for Google App Engine
 
 Since Flask-RESTful is not included in Google App Engine by default, we need to configure our project to make
 it 'Cloud Ready'. All the necessary libraries, source trees and scripts/yaml are included:
