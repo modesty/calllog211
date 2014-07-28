@@ -24,6 +24,14 @@ _Note: This project is intended to serve as a seed project to develop RESTful We
 Python frameworks and libraries (more on this later), it does not has a full fledged CRUD sample code 
 with NDB, although it can be added later on._
 
+## Up and running
+
+To run this project in your local development environment, clone the repository first, then edit app.yaml by replacing `<Your Google Cloud Poject ID>` with your own Google App Engine project ID, in terminal, run:
+ 
+ 
+    `cd <your-project-clone-directory>`
+    
+    `dev_appserver.py .`
 
 ## What it is built with
 
