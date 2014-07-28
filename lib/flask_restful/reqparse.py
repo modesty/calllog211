@@ -1,8 +1,10 @@
 from flask import request
 from werkzeug.datastructures import MultiDict, FileStorage
 import flask_restful
+import decimal
 import inspect
 import six
+
 
 class Namespace(dict):
     def __getattr__(self, name):
@@ -10,6 +12,7 @@ class Namespace(dict):
             return self[name]
         except KeyError:
             raise AttributeError(name)
+
     def __setattr__(self, name, value):
         self[name] = value
 
@@ -23,6 +26,7 @@ _friendly_location = {
 }
 
 text_type = lambda x: six.text_type(x)
+
 
 class Argument(object):
 
@@ -98,7 +102,10 @@ class Argument(object):
             return self.type(value, self.name, op)
         except TypeError:
             try:
-                return self.type(value, self.name)
+                if self.type is decimal.Decimal:
+                    return self.type(str(value), self.name)
+                else:
+                    return self.type(value, self.name)
             except TypeError:
                 return self.type(value)
 
@@ -131,20 +138,23 @@ class Argument(object):
                     values = [source.get(name)]
 
                 for value in values:
-                    _is_file = isinstance(value, FileStorage)
-                    if not (self.case_sensitive or _is_file):
-                        value = value.lower()
-                    if self.choices and value not in self.choices:
-                        self.handle_validation_error(ValueError(
-                            u"{0} is not a valid choice".format(value)))
-                    if not _is_file:
+                    if not isinstance(value, FileStorage):
+                        if not self.case_sensitive:
+                            value = value.lower()
+
                         try:
                             value = self.convert(value, operator)
                         except Exception as error:
                             if self.ignore:
                                 continue
-
                             self.handle_validation_error(error)
+
+                        if self.choices and value not in self.choices:
+                            self.handle_validation_error(
+                                ValueError(u"{0} is not a valid choice".format(
+                                    value
+                                ))
+                            )
 
                     results.append(value)
 
@@ -155,7 +165,7 @@ class Argument(object):
                     _friendly_location.get(self.location, self.location)
                 )
             else:
-                friendly_locations = [_friendly_location.get(loc, loc) \
+                friendly_locations = [_friendly_location.get(loc, loc)
                                       for loc in self.location]
                 error_msg = u"Missing required parameter {0} in {1}".format(
                     self.name,
@@ -195,11 +205,18 @@ class RequestParser(object):
         self.namespace_class = namespace_class
 
     def add_argument(self, *args, **kwargs):
-        """Adds an argument to be parsed. See :class:`Argument`'s constructor
-        for documentation on the available options.
-        """
+        """Adds an argument to be parsed.
 
-        self.args.append(self.argument_class(*args, **kwargs))
+        Accepts either a single instance of Argument or arguments to be passed
+        into :class:`Argument`'s constructor.
+
+        See :class:`Argument`'s constructor for documentation on the
+        available options.
+        """
+        if len(args) == 1 and isinstance(args[0], self.argument_class):
+            self.args.append(args[0])
+        else:
+            self.args.append(self.argument_class(*args, **kwargs))
         return self
 
     def parse_args(self, req=None):
@@ -215,3 +232,19 @@ class RequestParser(object):
             namespace[arg.dest or arg.name] = arg.parse(req)
 
         return namespace
+
+    def copy(self):
+        """ Creates a copy of this RequestParser with the same set of arguments """
+        parser_copy = RequestParser(self.argument_class, self.namespace_class)
+        parser_copy.args = list(self.args)
+        return parser_copy
+
+    def replace_argument(self, name, *args, **kwargs):
+        """ Replace the argument matching the given name with a new version. """
+        new_arg = self.argument_class(name, *args, **kwargs)
+        for index, arg in enumerate(self.args[:]):
+            if new_arg.name == arg.name:
+                del self.args[index]
+                self.args.append(new_arg)
+                break
+        return self

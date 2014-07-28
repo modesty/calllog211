@@ -20,8 +20,12 @@
 #     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 #     OTHER DEALINGS IN THE SOFTWARE.
 
-from UserDict import DictMixin
+try:
+    from UserDict import DictMixin
+except ImportError:
+    from collections import MutableMapping as DictMixin
 import six
+
 
 class OrderedDict(dict, DictMixin):
 
@@ -120,7 +124,7 @@ class OrderedDict(dict, DictMixin):
         if isinstance(other, OrderedDict):
             if len(self) != len(other):
                 return False
-            for p, q in  zip(self.items(), other.items()):
+            for p, q in zip(self.items(), other.items()):
                 if p != q:
                     return False
             return True

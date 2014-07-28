@@ -6,7 +6,7 @@ except ImportError:
     # python3
     from urllib.parse import urlparse, urlunparse
 
-from flask_restful import restful_types as types, marshal
+from flask_restful import inputs, marshal
 from flask import url_for
 
 __all__ = ["String", "FormattedString", "Url", "DateTime", "Float",
@@ -81,7 +81,8 @@ class Raw(object):
         self.default = default
 
     def format(self, value):
-        """Formats a field's value. No-op by default, concrete fields should
+        """Formats a field's value. No-op by default - field classes that 
+        modify how the value of existing object keys should be presented should 
         override this and apply the appropriate formatting.
 
         :param value: The value to format
@@ -97,7 +98,11 @@ class Raw(object):
 
     def output(self, key, obj):
         """Pulls the value for the given key from the object, applies the
-        field's formatting and returns the result.
+        field's formatting and returns the result. If the key is not found 
+        in the object, returns the default value. Field classes that create 
+        values which do not require the existence of the key in the object 
+        should override this and return the desired value.
+        
         :exception MarshallingException: In case of formatting problem
         """
 
@@ -145,22 +150,25 @@ class List(Raw):
                 raise MarshallingException(error_msg)
             self.container = cls_or_instance
 
+    def format(self, value):
+        # Convert all instances in typed list to container type
+        if isinstance(value, set):
+            value = list(value)
+
+        return [
+            self.container.output(idx,
+                                  val if isinstance(val, dict) and
+                                         not isinstance(self.container, Nested)
+                                  and not type(self.container) is Raw
+                                  else value)
+            for idx, val in enumerate(value)
+        ]
+
     def output(self, key, data):
         value = get_value(key if self.attribute is None else self.attribute, data)
         # we cannot really test for external dict behavior
         if is_indexable_but_not_string(value) and not isinstance(value, dict):
-            # Convert all instances in typed list to container type
-            if isinstance(value, set):
-                value = list(value)
-
-            return [
-                self.container.output(idx,
-                                      val if isinstance(val, dict) and
-                                      not isinstance(self.container, Nested)
-                                      and not type(self.container) is Raw
-                                      else value)
-                for idx, val in enumerate(value)
-            ]
+            return self.format(value)
 
         if value is None:
             return self.default
@@ -204,7 +212,27 @@ class Boolean(Raw):
 
 
 class FormattedString(Raw):
+    """
+    FormattedString is used to interpolate other values from
+    the response into this field. The syntax for the source string is
+    the same as the string `format` method from the python stdlib.
+
+    Ex::
+
+        fields = {
+            'name': fields.String,
+            'greeting': fields.FormattedString("Hello {name}")
+        }
+        data = {
+            'name': 'Doug',
+        }
+        marshal(data, fields)
+    """
     def __init__(self, src_str):
+        """
+        :param string src_str: the string to format with the other
+        values from the response.
+        """
         super(FormattedString, self).__init__()
         self.src_str = six.text_type(src_str)
 
@@ -229,7 +257,7 @@ class Url(Raw):
     def output(self, key, obj):
         try:
             data = to_marshallable_type(obj)
-            o = urlparse(url_for(self.endpoint, _external = self.absolute, **data))
+            o = urlparse(url_for(self.endpoint, _external=self.absolute, **data))
             if self.absolute:
                 scheme = self.scheme if self.scheme is not None else o.scheme
                 return urlunparse((scheme, o.netloc, o.path, "", "", ""))
@@ -246,7 +274,7 @@ class Float(Raw):
 
     def format(self, value):
         try:
-            return repr(float(value))
+            return float(value)
         except ValueError as ve:
             raise MarshallingException(ve)
 
@@ -266,7 +294,7 @@ class DateTime(Raw):
 
     def format(self, value):
         try:
-            return types.rfc822(value)
+            return inputs.rfc822(value)
         except AttributeError as ae:
             raise MarshallingException(ae)
 

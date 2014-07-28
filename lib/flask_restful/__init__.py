@@ -21,7 +21,7 @@ try:
 except ImportError:
     from .utils.ordereddict import OrderedDict
 
-__all__ = ('Api', 'Resource', 'marshal', 'marshal_with', 'abort')
+__all__ = ('Api', 'Resource', 'marshal', 'marshal_with', 'marshal_with_field', 'abort')
 
 
 def abort(http_status_code, **kwargs):
@@ -34,7 +34,7 @@ def abort(http_status_code, **kwargs):
     except HTTPException as e:
         if len(kwargs):
             e.data = kwargs
-        raise e
+        raise
 
 DEFAULT_REPRESENTATIONS = {'application/json': output_json}
 
@@ -65,12 +65,15 @@ class Api(object):
         is the blueprint (or blueprint registration) prefix, 'a' is the api
         prefix, and 'e' is the path component the endpoint is added with
     :type catch_all_404s: bool
+    :param errors: A dictionary to define a custom response for each
+        exception or error raised during a request
+    :type errors: dict
 
     """
 
     def __init__(self, app=None, prefix='',
                  default_mediatype='application/json', decorators=None,
-                 catch_all_404s=False, url_part_order='bae'):
+                 catch_all_404s=False, url_part_order='bae', errors=None):
         self.representations = dict(DEFAULT_REPRESENTATIONS)
         self.urls = {}
         self.prefix = prefix
@@ -78,6 +81,7 @@ class Api(object):
         self.decorators = decorators if decorators else []
         self.catch_all_404s = catch_all_404s
         self.url_part_order = url_part_order
+        self.errors = errors or {}
         self.blueprint_setup = None
         self.endpoints = set()
         self.resources = []
@@ -98,8 +102,8 @@ class Api(object):
         Examples::
 
             api = Api()
-            api.init_app(app)
             api.add_resource(...)
+            api.init_app(app)
 
         """
         self.blueprint = None
@@ -120,10 +124,11 @@ class Api(object):
         :param registration_prefix: The part of the url contributed by the
             blueprint.  Generally speaking, BlueprintSetupState.url_prefix
         """
-
-        parts = {'b' : registration_prefix,
-                 'a' : self.prefix,
-                 'e' : url_part}
+        parts = {
+            'b': registration_prefix,
+            'a': self.prefix,
+            'e': url_part
+        }
         return ''.join(parts[key] for key in self.url_part_order if parts[key])
 
     @staticmethod
@@ -230,7 +235,6 @@ class Api(object):
             # Werkzeug throws other kinds of exceptions, such as Redirect
             pass
 
-
     def _has_fr_route(self):
         """Encapsulating the rules for whether the request was to a Flask endpoint"""
         # 404's, 405's, which might not have a url_rule
@@ -300,15 +304,21 @@ class Api(object):
                     data["message"] = ""
 
                 data['message'] += 'You have requested this URI [' + request.path + \
-                        '] but did you mean ' + \
-                        ' or '.join((rules[match]
-                                     for match in close_matches)) + ' ?'
+                                   '] but did you mean ' + \
+                                   ' or '.join((
+                                       rules[match] for match in close_matches)
+                                   ) + ' ?'
+
+        error_cls_name = type(e).__name__
+        if error_cls_name in self.errors:
+            custom_data = self.errors.get(error_cls_name, {})
+            code = custom_data.get('status', 500)
+            data.update(custom_data)
 
         resp = self.make_response(data, code)
 
         if code == 401:
             resp = self.unauthorized(resp)
-
         return resp
 
     def mediatypes_method(self):
@@ -345,7 +355,6 @@ class Api(object):
         else:
             self.resources.append((resource, urls, kwargs))
 
-
     def _register_view(self, app, resource, *urls, **kwargs):
         endpoint = kwargs.pop('endpoint', None) or resource.__name__.lower()
         self.endpoints.add(endpoint)
@@ -364,7 +373,6 @@ class Api(object):
         for decorator in self.decorators:
             resource_func = decorator(resource_func)
 
-
         for url in urls:
             # If this Api has a blueprint
             if self.blueprint:
@@ -372,7 +380,8 @@ class Api(object):
                 if self.blueprint_setup:
                     # Set the rule to a string directly, as the blueprint is already
                     # set up.
-                    rule = self._complete_url(url, self.blueprint_setup.url_prefix)
+                    self.blueprint_setup.add_url_rule(url, view_func=resource_func, **kwargs)
+                    continue
                 else:
                     # Set the rule to a function that expects the blueprint prefix
                     # to construct the final url.  Allows deferment of url finalization
@@ -506,9 +515,9 @@ def marshal(data, fields):
     """Takes raw data (in the form of a dict, list, object) and a dict of
     fields to output and filters the data based on those fields.
 
+    :param data: the actual object(s) from which the fields are taken from
     :param fields: a dict of whose keys will make up the final serialized
                    response output
-    :param data: the actual object(s) from which the fields are taken from
 
 
     >>> from flask.ext.restful import fields, marshal
@@ -528,8 +537,8 @@ def marshal(data, fields):
         return [marshal(d, fields) for d in data]
 
     items = ((k, marshal(data, v) if isinstance(v, dict)
-                                  else make(v).output(k, data))
-                                  for k, v in fields.items())
+              else make(v).output(k, data))
+             for k, v in fields.items())
     return OrderedDict(items)
 
 
@@ -562,4 +571,40 @@ class marshal_with(object):
                 return marshal(data, self.fields), code, headers
             else:
                 return marshal(resp, self.fields)
+        return wrapper
+
+
+class marshal_with_field(object):
+    """
+    A decorator that formats the return values of your methods with a single field.
+
+    >>> from flask.ext.restful import marshal_with_field, fields
+    >>> @marshal_with_field(fields.List(fields.Integer))
+    ... def get():
+    ...     return ['1', 2, 3.0]
+    ...
+    >>> get()
+    [1, 2, 3]
+
+    see :meth:`flask.ext.restful.marshal_with`
+    """
+    def __init__(self, field):
+        """
+        :param field: a single field with which to marshal the output.
+        """
+        if isinstance(field, type):
+            self.field = field()
+        else:
+            self.field = field
+
+    def __call__(self, f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            resp = f(*args, **kwargs)
+
+            if isinstance(resp, tuple):
+                data, code, headers = unpack(resp)
+                return self.field.format(data), code, headers
+            return self.field.format(resp)
+
         return wrapper

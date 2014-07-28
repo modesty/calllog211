@@ -1,6 +1,6 @@
 from calendar import timegm
 from datetime import datetime, time, timedelta
-from email.utils import formatdate
+from email.utils import formatdate, parsedate_tz, mktime_tz
 import re
 
 import aniso8601
@@ -201,6 +201,8 @@ def int_range(low, high, value, argument='argument'):
 
 def boolean(value):
     """Parse the string "true" or "false" as a boolean (case insensitive)"""
+    if not value:
+        raise ValueError("boolean type must be non-null")
     value = value.lower()
     if value == 'true':
         return True
@@ -214,10 +216,24 @@ def rfc822(dt):
 
     Example::
 
-        types.rfc822(datetime(2011, 1, 1)) => "Sat, 01 Jan 2011 00:00:00 -0000"
+        inputs.rfc822(datetime(2011, 1, 1)) => "Sat, 01 Jan 2011 00:00:00 -0000"
 
     :param dt: The datetime to transform
     :type dt: datetime
     :return: A RFC 822 formatted date string
     """
     return formatdate(timegm(dt.utctimetuple()))
+
+
+def datetime_from_rfc822(datetime_str):
+    """Turns an RFC822 formatted date into a datetime object.
+
+    Example::
+
+        inputs.datetime_from_rfc822("Wed, 02 Oct 2002 08:00:00 EST")
+
+    :param datetime_str: The RFC822-complying string to transform
+    :type datetime_str: str
+    :return: A datetime
+    """
+    return datetime.fromtimestamp(mktime_tz(parsedate_tz(datetime_str)), pytz.utc)
