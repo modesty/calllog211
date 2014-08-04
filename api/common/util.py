@@ -14,74 +14,6 @@ import flask
 
 from api import config
 
-
-###############################################################################
-# Request Parameters
-###############################################################################
-def param(name, cast=None):
-  value = None
-  if flask.request.json:
-    return flask.request.json.get(name, None)
-
-  if value is None:
-    value = flask.request.args.get(name, None)
-  if value is None and flask.request.form:
-    value = flask.request.form.get(name, None)
-
-  if cast and value is not None:
-    if cast == bool:
-      return value.lower() in ['true', 'yes', '1', '']
-    if cast == list:
-      return value.split(',') if len(value) > 0 else []
-    return cast(value)
-  return value
-
-
-def get_next_url():
-  next = param('next')
-  if next:
-    return next
-  referrer = flask.request.referrer
-  if referrer and referrer.startswith(flask.request.host_url):
-    return referrer
-  return flask.url_for('welcome')
-
-
-###############################################################################
-# Model manipulations
-###############################################################################
-def retrieve_dbs(
-    query, order=None, limit=None, cursor=None, keys_only=None, **filters
-  ):
-  '''Retrieves entities from datastore, by applying cursor pagination
-  and equality filters. Returns dbs or keys and more cursor value
-  '''
-  limit = limit or config.DEFAULT_DB_LIMIT
-  cursor = Cursor.from_websafe_string(cursor) if cursor else None
-  model_class = ndb.Model._kind_map[query.kind]
-  if order:
-    for o in order.split(','):
-      if o.startswith('-'):
-        query = query.order(-model_class._properties[o[1:]])
-      else:
-        query = query.order(model_class._properties[o])
-
-  for prop in filters:
-    if filters.get(prop, None) is None:
-      continue
-    if isinstance(filters[prop], list):
-      for value in filters[prop]:
-        query = query.filter(model_class._properties[prop] == value)
-    else:
-      query = query.filter(model_class._properties[prop] == filters[prop])
-
-  model_dbs, more_cursor, more = query.fetch_page(
-      limit, start_cursor=cursor, keys_only=keys_only,
-    )
-  more_cursor = more_cursor.to_websafe_string() if more else None
-  return list(model_dbs), more_cursor
-
-
 ###############################################################################
 # JSON Response Helpers
 ###############################################################################
@@ -148,17 +80,6 @@ def json_value(value):
   if isinstance(value, ndb.Model):
     return model_db_to_object(value)
   return value
-
-
-def jsonpify(*args, **kwargs):
-  if param('callback'):
-    content = '%s(%s)' % (
-        param('callback'), flask.jsonify(*args, **kwargs).data,
-      )
-    mimetype = 'application/javascript'
-    return flask.current_app.response_class(content, mimetype=mimetype)
-  return flask.jsonify(*args, **kwargs)
-
 
 ###############################################################################
 # Helpers
@@ -265,19 +186,3 @@ def todict(obj, classkey=None):
         return data
     else:
         return obj
-
-###############################################################################
-# link_code generation
-###############################################################################
-link_code_choices = string.lowercase + string.uppercase + string.digits
-def rand_x_digit_num(x, leading_zeroes=True):
-    if not leading_zeroes:
-        return random.randint(10**(x-1), 10**x-1)
-    else:
-        return str(random.randint(0, 10**x-1)).zfill(x)
-
-def alpha_numeric_key(length):
-    key = ''
-    for i in range(length):
-        key += random.choice(link_code_choices)
-    return key

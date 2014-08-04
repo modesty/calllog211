@@ -12,14 +12,6 @@ from api import config
 EMAIL_REGEX = re.compile(r"[^@]+@[^@]+\.[^@]+")
 GEO_PT_REGEX = re.compile(r"^(\-?\d+(\.\d+)?),\s*(\-?\d+(\.\d+)?)$")
 
-
-def ch_link_code(code_str):
-    if isStringWithLength(code_str, 6):
-        return code_str
-    else:
-        raise ValidationError("{0} is not valid".format(code_str))
-
-
 def ch_uuid(uuid_str):
     if isStringWithLeastLength(uuid_str, 9):
         return uuid_str
@@ -31,12 +23,6 @@ def ch_user_id(user_str):
         return user_str
     else:
         raise ValidationError("{0} is not valid".format(user_str))
-
-def ch_access_token(token_str):
-    if isStringWithLeastLength(token_str, 6):
-        return token_str
-    else:
-        raise ValidationError("{0} is not valid".format(token_str))
 
 def ch_oauth_provider(provider_str):
     if provider_str in config.OAUTH_PROVIDERS:
@@ -64,14 +50,7 @@ def ch_date_time(datetime_str):
     except ValueError as e:
         raise ValidationError(e.message)
 
-def ch_play_mode(mode_str):
-    if mode_str in config.ENUM_PLAY_MODE:
-        return mode_str
-    else:
-        raise ValidationError("{0} is not valid".format(mode_str))
+def ch_str_na(str):
+    return str if isStringWithLeastLength(str, 1) else "N/A"
 
-def ch_device_type(type_str):
-    if type_str in config.ENUM_DEVICE_TYPE:
-        return type_str
-    else:
-        raise ValidationError("{0} is not valid".format(type_str))
+
