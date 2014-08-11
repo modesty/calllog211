@@ -1,15 +1,13 @@
 import sys
 # from flask import request
 from flask.ext.restful import Resource, reqparse, abort
-from flask.ext.restful.utils import cors
 
 from api.common.response import *
 from api.common.validator import *
 from api.model.model import CallLog
+from api.common.util import *
 
-class CallLogAPI(Resource):
-    # method_decorators = [cors.crossdomain(origin='*')]
-
+class CallLogAPI(ResourceCORS):
     @staticmethod
     def route():
         return config.API_ROUTE_ROOT.format('calllog','')
@@ -23,7 +21,6 @@ class CallLogAPI(Resource):
         parser.add_argument('phone', type=ch_str_na, required=True)
         return parser.parse_args()
 
-    # @cors.crossdomain(origin='*')
     def post(self):
         resObj = ResBase()
 
@@ -32,16 +29,11 @@ class CallLogAPI(Resource):
         try:
             oneLog = CallLog(**args)
             oneLog.put()
+
             resObj.result['created'] = oneLog.created.strftime('%Y-%m-%d %H:%M:%S')
             resObj.result['id'] = oneLog.key.id()
 
         except BaseException as e:
             abort(500, Error="Exception - {0}".format(e.message))
 
-        # return resObj.get_json(), 200, {'Access-Control-Allow-Origin': '*'}
         return resObj.get_json()
-
-    def options (self):
-        return {'Allow' : 'POST, OPTIONS' }, 200, \
-            { 'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods' : 'POST, OPTIONS' }
