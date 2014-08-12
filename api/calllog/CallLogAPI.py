@@ -7,7 +7,7 @@ from api.common.validator import *
 from api.model.model import CallLog
 from api.common.util import *
 
-class CallLogAPI(ResourceCORS):
+class CallLogAPI(Resource):
     @staticmethod
     def route():
         return config.API_ROUTE_ROOT.format('calllog','')

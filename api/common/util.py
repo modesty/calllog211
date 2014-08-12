@@ -110,7 +110,3 @@ def todict(obj, classkey=None):
         return data
     else:
         return obj
-
-class ResourceCORS(restful.Resource):
-    def options (self):
-        return {'message' : 'OK'}, 200
