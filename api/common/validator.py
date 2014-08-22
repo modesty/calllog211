@@ -1,8 +1,10 @@
 import random
 import string
+import re
+import ast
+
 from datetime import datetime
 from google.appengine.ext import ndb
-import re
 
 from werkzeug.routing import ValidationError
 
@@ -23,12 +25,6 @@ def ch_user_id(user_str):
         return user_str
     else:
         raise ValidationError("{0} is not valid".format(user_str))
-
-def ch_oauth_provider(provider_str):
-    if provider_str in config.OAUTH_PROVIDERS:
-        return provider_str
-    else:
-        raise ValidationError("{0} is not supported".format(provider_str))
 
 
 def ch_email(email_str):
@@ -53,4 +49,33 @@ def ch_date_time(datetime_str):
 def ch_str_na(str):
     return str if isStringWithLeastLength(str, 1) else "N/A"
 
+
+# value can be string, or string literal of list or tuple
+def ch_literal(value):
+    try:
+        if isinstance(value, basestring):
+            retVal = value
+            if value.startswith('[') and value.endswith(']'):
+                retVal = ast.literal_eval(value)
+            elif value.startswith('(') and value.endswith(')'):
+                retVal = ast.literal_eval(value)
+            return retVal
+        else:
+            raise ValidationError("{} should be either string, or string literal of list or tuple".format(value))
+    except Exception as e:
+            raise ValidationError("'{}' should be either string, or string literal of list or tuple".format(e.message))
+
+def ch_date_tuple(value):
+    try:
+        if value.startswith('(') and value.endswith(')'):
+            retVal = []
+            date_strs = ast.literal_eval(value)
+            for one_date in date_strs:
+                retVal.append(ch_date_time(one_date))
+            retVal = tuple(retVal)
+        else:
+            retVal = ch_date_time(value)
+        return retVal
+    except Exception as e:
+            raise ValidationError("'{}' should be either string, or string literal of tuple".format(e.message))
 

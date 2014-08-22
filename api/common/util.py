@@ -1,24 +1,65 @@
 # coding: utf-8
 import random
 import string
+import urllib
 from datetime import datetime
 from uuid import uuid4
 import re
 import unicodedata
-import urllib
 
-from google.appengine.datastore.datastore_query import Cursor
-from google.appengine.ext import blobstore
-from google.appengine.ext import ndb
+from google.appengine.ext import ndb, blobstore
+
 import flask
-from flask.ext import restful
-
-from api import config
-
 
 ###############################################################################
 # Helpers
 ###############################################################################
+def generate_more_url(more_cursor, base_url=None, cursor_name='cursor'):
+  '''Substitutes or alters the current request URL with a new cursor parameter
+  for next page of results
+  '''
+  if not more_cursor:
+    return None
+  base_url = base_url or flask.request.base_url
+  args = flask.request.args.to_dict()
+  args[cursor_name] = more_cursor
+  return '%s?%s' % (base_url, urllib.urlencode(args))
+
+def json_value(value):
+  if isinstance(value, datetime):
+    # return value.isoformat()
+    return value.strftime('%Y-%m-%d %H:%M:%S')
+  if isinstance(value, ndb.Key):
+    return value.urlsafe()
+  if isinstance(value, blobstore.BlobKey):
+    return urllib.quote(str(value))
+  if isinstance(value, ndb.GeoPt):
+    return '%s,%s' % (value.lat, value.lon)
+  if isinstance(value, list):
+    return [json_value(v) for v in value]
+  if isinstance(value, long):
+    # Big numbers are sent as strings for accuracy in JavaScript
+    if value > 9007199254740992 or value < -9007199254740992:
+      return str(value)
+  if isinstance(value, ndb.Model):
+    return model_db_to_object(value)
+  return value
+
+
+def model_db_to_object(model_db):
+  model_db_object = {}
+  for prop in model_db._properties:
+    if prop == 'id':
+      try:
+        value = json_value(getattr(model_db, 'key', None).id())
+      except:
+        value = None
+    else:
+      value = json_value(getattr(model_db, prop, None))
+    if value is not None:
+      model_db_object[prop] = value
+  return model_db_object
+
 
 def uuid():
   return uuid4().hex
@@ -110,3 +151,40 @@ def todict(obj, classkey=None):
         return data
     else:
         return obj
+
+###############################################################################
+# prepare request parser dictionary for db query
+###############################################################################
+def prep_parser_params(model_class, **kwargs):
+    limit = None
+    order = None
+    cursor = None
+    filters = {}
+
+    for prop in kwargs:
+        if kwargs[prop] is None:
+            continue
+        if prop == 'limit':
+            limit = kwargs[prop]
+        elif prop == 'order':
+            order = kwargs[prop]
+        elif prop == 'cursor':
+            cursor = kwargs[prop]
+        elif prop in model_class._properties:
+            filters[prop] = kwargs[prop]
+
+    return limit, order, cursor, filters
+
+def prep_entity_list(resObj, ent_list, more_cursor=None):
+  resultDict = resObj.result
+  resultDict['entities'] = []
+  for model_db in ent_list:
+    resultDict['entities'].append(model_db_to_object(model_db))
+
+  if len(ent_list) < 1:
+      resObj.status.code = 204
+      resObj.status.message = "No Content - no entity found."
+
+  if more_cursor:
+    resultDict['more_cursor'] = more_cursor
+    resultDict['more_url'] = generate_more_url(more_cursor)
