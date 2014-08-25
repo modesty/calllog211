@@ -1,3 +1,4 @@
+# SOHA (Service Oriented HTML Application) implementation on Google App Engine: client and service
 application: call-log-211-data-service
 version: 1
 runtime: python27
@@ -11,8 +12,6 @@ includes:
 - web_app.yaml
 
 libraries:
-#- name: endpoints
-#  version: latest
 - name: pycrypto
   version: latest
 - name: jinja2

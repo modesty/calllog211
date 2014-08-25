@@ -14,8 +14,13 @@ for instant data persistence development gratification. Just clone the repo (or 
 start up [Google App Engine App Launcher](https://developers.google.com/appengine/downloads),
 and you are ready to develop and test your RESTful API.
 
-The seed app doesn't do much, it implements one endpoint that takes and validates a HTTP POST request, 
-then save the data to [Google Cloud Datastore - Google's version of NoSQL cloud data storage](https://developers.google.com/datastore/).
+The seed app does two main things, saving and fetching data. It implements one endpoint that takes and validates a HTTP POST request, 
+then save the data to [Google Cloud Datastore - Google's version of NoSQL cloud data storage](https://developers.google.com/datastore/). 
+Beyond saving data, it also provides a generic data retrieval mechanism, 
+it supports ndb.Model JSON serialization, response packaging, sorting, paging and query for property with great flexibilities,
+it not only query property with actual value, also supports OR operation via dictionary literal in the query string, 
+and Range operation through tuple literal in the query string as well, see data retrieval examples below.
+
 This project shows how to set up 3rd party Python libraries for [Google App Engine](https://developers.google.com/appengine/),
 how to structure your source code, how to validate data from request, how to handle exceptions and 
 how to response with a customized response JSON object.
@@ -106,6 +111,47 @@ Google has excellent documentation on [how to run on local development server](h
 and also [how to deploy and manage your app on App Engine](https://developers.google.com/appengine/docs/python/tools/uploadinganapp).
 You can also reference [Python tutorial](https://developers.google.com/appengine/docs/python/gettingstartedpython27/introduction) for more details.
 
+### Flexible Data Retrieval
+
+As discussed before, this project provides a generic data retrieval mechanism (defined in modelX.retrieve_list as generic static method), 
+it supports ndb.Model JSON serialization, response packaging, sorting, paging and query for property with great flexibilities,
+it can not only query property with actual value, but also supports OR operation via dictionary literal in the query string, 
+and Range operation through tuple literal in the query string as well, here are some query examples via HTTP GET:
+
+default query (with default limit set to 20: it returns up to 20 entities):
+    
+    curl -isv http://localhost:8080/api/v1.0/calllogs/
+    
+order by name (ASC):
+
+    curl -isv http://localhost:8080/api/v1.0/calllogs/?order=name
+    
+order by name (DESC):
+
+    curl -isv http://localhost:8080/api/v1.0/calllogs/?order=-name
+    
+sort and limit:
+    
+    curl -isv "http://localhost:8080/api/v1.0/calllogs/?order=-name&limit=2"
+    notice "more_cursor" and "more_url" in the response
+       
+paging (with cursor value returned in earlier calls)
+
+    curl -isv "http://localhost:8080/api/v1.0/calllogs/?cursor=E-ABAOsB8gEEbmFtZfoBChoISGVrdGhvbjXsAYICNWodZGV2fmNhbGwtbG9nLTIxMS1kYXRhLXNlcnZpY2VyFAsSB0NhbGxMb2cYgICAgID0jgoMiAIBFA%3D%3D&limit=2&order=-name"
+    
+list all (default limit) entities whose name is "Hekthon5":
+
+    curl -isv http://localhost:8080/api/v1.0/calllogs/?name=Hekthon5
+    
+OR: list all (default limit) entities whose name is either 'Hekthon5' or 'Hekthon4':
+    
+    curl -isv -G --data-urlencode "name=['Hekthon5', 'Hekthon4']" http://localhost:8080/api/v1.0/calllogs/
+    Notice the square bracket in the query string, this list literal will make the value to be an option ist
+
+Range: list all (default limit) entities which is created between '2014-08-01 00:00:00' and '2014-08-04 23:59:59' (inclusive)
+
+    curl -isv -G --data-urlencode "created=('2014-08-01 00:00:00', '2014-08-04 23:59:59')" http://localhost:8080/api/v1.0/calllogs/
+    Notice the parentheses in the query string, this tuple literal will make the value to be a range 
 ### Test the API
 
 Here are some sample `curl` command to test the API in terminal. When testing after deployment, simply replace

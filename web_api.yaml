@@ -1,3 +1,4 @@
+# SOHA (Service Oriented HTML Application) implementation on Google App Engine: service
 handlers:
 # Flask Restful handler
 - url: /api/.*

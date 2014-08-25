@@ -1,3 +1,4 @@
+# SOHA (Service Oriented HTML Application) implementation on Google App Engine: client
 handlers:
 - url: /(.*\.(appcache|manifest))
   mime_type: text/cache-manifest

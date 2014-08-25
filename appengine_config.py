@@ -1,3 +1,4 @@
+# SOHA (Service Oriented HTML Application) implementation on Google App Engine: service dependencies
 import os
 import sys
 
