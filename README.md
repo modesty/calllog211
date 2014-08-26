@@ -152,6 +152,7 @@ Range: list all (default limit) entities which is created between '2014-08-01 00
 
     curl -isv -G --data-urlencode "created=('2014-08-01 00:00:00', '2014-08-04 23:59:59')" http://localhost:8080/api/v1.0/calllogs/
     Notice the parentheses in the query string, this tuple literal will make the value to be a range 
+
 ### Test the API
 
 Here are some sample `curl` command to test the API in terminal. When testing after deployment, simply replace
@@ -181,6 +182,33 @@ The response body is structured by `common/response.py` and returns with datasto
             "message": "OK"
         }
     }
+    
+Test cases for data retrieval are listed in last section.
+
+### CORS Support
+
+The built-in implementation of [CORS](http://en.wikipedia.org/wiki/Cross-origin_resource_sharing) comes with Flask Restful 
+has issues to automatically handle HTTP OPTIONS calls, it returns 404 with the correct setups for methods decorators. I made 
+two additions to CORS support in Flask Restful (look for "MQZ" pre-fixed comments in lib/flask_restful/utils/cors.py):
+
+* Default HTTP OPTIONS handler:
+
+        # MQZ. 08/12/2014: without this, will get 405 response for OPTIONS request
+        f.required_methods = ['OPTIONS']
+        
+* Default on Cookie support:
+
+        # MQZ. 8/26/2014: Make sure cors support for cookies (with_credentials), default on
+        def crossdomain(origin=None, methods=None, headers=None,
+            max_age=21600, attach_to_all=True,
+            automatic_options=True, with_credentials=True):
+
+Then in line 43:
+
+        if with_credentials:
+            h['Access-Control-Allow-Credentials'] = True
+
+Leave me a message in [GitHub](https://github.com/modesty) if you see issue on CORS.
 
 ### Receiving updates from upstream
 

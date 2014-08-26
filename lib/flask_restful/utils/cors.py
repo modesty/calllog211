@@ -3,9 +3,10 @@ from flask import make_response, request, current_app
 from functools import update_wrapper
 
 
+# MQZ. 8/26/2014: Make sure cors support for cookies (with_credentials), default on
 def crossdomain(origin=None, methods=None, headers=None,
                 max_age=21600, attach_to_all=True,
-                automatic_options=True):
+                automatic_options=True, with_credentials=True):
     """
     http://flask.pocoo.org/snippets/56/
     """
@@ -39,6 +40,8 @@ def crossdomain(origin=None, methods=None, headers=None,
             h['Access-Control-Allow-Origin'] = origin
             h['Access-Control-Allow-Methods'] = get_methods()
             h['Access-Control-Max-Age'] = str(max_age)
+            if with_credentials:
+                h['Access-Control-Allow-Credentials'] = True
             if headers is not None:
                 h['Access-Control-Allow-Headers'] = headers
             return resp
